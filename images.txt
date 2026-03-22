@@ -8,3 +8,5 @@ nginx
 mysql:8.0
 redis:7
 mongodb/mongodb-community-server:7.0-ubi8-slim
+
+oven/bun:canary-debian
