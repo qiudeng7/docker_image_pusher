@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "docker-image-pusher"
+version = "0.1.0"
+description = "CLI tool to manage Docker image mirroring to Aliyun registry"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fire = "^0.7.0"
+requests = "^2.32.0"
+PyGithub = "^2.5.0"
+aliyun-python-sdk-core = "^2.16.0"
+aliyun-python-sdk-cr = "^4.1.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.scripts]
+docker-image-pusher = "src.cli.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
