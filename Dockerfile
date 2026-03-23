@@ -3,9 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN pip install poetry && poetry config virtualenvs.create false && poetry install --no-dev
+RUN pip install uv && uv pip install --system fire requests python-dotenv aliyun-python-sdk-core aliyun-python-sdk-cr
 
 COPY src ./src
-COPY skills ./skills
 
 ENTRYPOINT ["python", "-m", "src.cli.main"]

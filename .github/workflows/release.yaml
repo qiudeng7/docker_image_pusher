@@ -26,12 +26,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install poetry pyinstaller
-          poetry install
+          pip install uv pyinstaller
+          uv pip install --system fire requests python-dotenv aliyun-python-sdk-core aliyun-python-sdk-cr
 
       - name: Build binary
         run: |
-          pyinstaller --onefile --name docker-image-pusher-${{ matrix.arch }} src/cli/main.py
+          pyinstaller --onefile --name docker-image-pusher-${{ matrix.arch }} \
+            --hidden-import=src.github \
+            --hidden-import=src.github.file \
+            --hidden-import=src.github.actions \
+            --hidden-import=src.aliyun \
+            --hidden-import=src.aliyun.registry \
+            --hidden-import=aliyunsdkcr \
+            --hidden-import=aliyunsdkcr.request.v20160607 \
+            src/cli/main.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
