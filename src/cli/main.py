@@ -1,65 +1,46 @@
 import os
+import json
 import fire
-import shutil
-from pathlib import Path
 from dotenv import load_dotenv
-from src.github import read_file, update_file, get_latest_run, wait_for_run
-from src.aliyun import list_tags
+from src.github import read_file, update_file, check_actions_by_sha
+from src.aliyun import list_repos, list_tags
 
-# 加载 .env 文件
 load_dotenv()
 
 
 class DockerImagePusher:
-    def read_images(self, repo=None, token=None):
-        """读取 images.txt 内容"""
+    def read_github_images(self, repo=None, token=None):
+        """读取 GitHub 上的 images.txt"""
         repo = repo or os.getenv("GITHUB_REPO")
         token = token or os.getenv("GITHUB_TOKEN")
         return read_file(repo, "images.txt", token)
 
-    def update_images(self, content, repo=None, token=None, message="Update images.txt"):
-        """更新 images.txt 并触发 Actions"""
+    def update_github_images(self, content, repo=None, token=None, message="Update images.txt"):
+        """更新 GitHub 上的 images.txt，返回 commit SHA 用于后续查询 Actions"""
         repo = repo or os.getenv("GITHUB_REPO")
         token = token or os.getenv("GITHUB_TOKEN")
-        sha = update_file(repo, "images.txt", content, token, message)
-        print(f"Updated images.txt, commit: {sha}")
-        return sha
+        try:
+            sha = update_file(repo, "images.txt", content, token, message)
+            return {"success": True, "commit_sha": sha}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
-    def check_actions(self, repo=None, token=None, run_id=None):
-        """查询 Actions 状态"""
+    def check_actions(self, commit_sha, repo=None, token=None):
+        """通过 commit SHA 查询 Actions 状态"""
         repo = repo or os.getenv("GITHUB_REPO")
         token = token or os.getenv("GITHUB_TOKEN")
+        return check_actions_by_sha(repo, token, commit_sha)
 
-        if run_id:
-            result = wait_for_run(repo, token, run_id, timeout=0)
-        else:
-            result = get_latest_run(repo, token)
-
-        print(f"Status: {result}")
-        return result
-
-    def list_aliyun_tags(self, namespace, repo_name, key_id=None, key_secret=None, region=None):
-        """列出阿里云镜像 tag"""
+    def list_images(self, namespace, repo_name=None, key_id=None, key_secret=None, region=None):
+        """列出阿里云镜像。只给 namespace 列出 repos，给了 repo_name 列出 tags"""
         key_id = key_id or os.getenv("ALIYUN_ACCESS_KEY_ID")
         key_secret = key_secret or os.getenv("ALIYUN_ACCESS_KEY_SECRET")
         region = region or os.getenv("ALIYUN_REGION", "cn-hangzhou")
 
-        tags = list_tags(namespace, repo_name, key_id, key_secret, region)
-        print(f"Tags: {tags}")
-        return tags
-
-    def install_skill(self, scope="project", lang="zh"):
-        """安装 skill 到 .claude/skills/"""
-        skill_src = Path(__file__).parent.parent.parent / "skills" / lang
-
-        if scope == "project":
-            skill_dst = Path.cwd() / ".claude" / "skills" / "docker-image-pusher"
+        if repo_name:
+            return list_tags(namespace, repo_name, key_id, key_secret, region)
         else:
-            skill_dst = Path.home() / ".claude" / "skills" / "docker-image-pusher"
-
-        skill_dst.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(skill_src, skill_dst, dirs_exist_ok=True)
-        print(f"Skill installed to: {skill_dst}")
+            return list_repos(namespace, key_id, key_secret, region)
 
 
 def main():

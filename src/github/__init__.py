@@ -1,4 +1,4 @@
 from .file import read_file, update_file
-from .actions import get_latest_run, wait_for_run
+from .actions import check_actions_by_sha
 
-__all__ = ['read_file', 'update_file', 'get_latest_run', 'wait_for_run']
+__all__ = ['read_file', 'update_file', 'check_actions_by_sha']

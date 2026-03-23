@@ -1,29 +1,39 @@
 import requests
-import time
+from datetime import datetime
 
-def get_latest_run(repo, token, workflow_id="docker.yaml"):
-    """获取最新的 workflow run"""
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_id}/runs"
+def check_actions_by_sha(repo, token, commit_sha):
+    """通过 commit SHA 查询 Actions 状态"""
+    url = f"https://api.github.com/repos/{repo}/commits/{commit_sha}/check-runs"
     headers = {"Authorization": f"token {token}"}
-    resp = requests.get(url, headers=headers, params={"per_page": 1})
+    resp = requests.get(url, headers=headers)
     resp.raise_for_status()
-    runs = resp.json()["workflow_runs"]
-    return runs[0] if runs else None
 
-def wait_for_run(repo, token, run_id, timeout=600):
-    """等待 workflow run 完成"""
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
-    headers = {"Authorization": f"token {token}"}
-    start = time.time()
+    check_runs = resp.json().get("check_runs", [])
+    if not check_runs:
+        return {"status": "not_found", "message": "No check runs found for this commit"}
 
-    while time.time() - start < timeout:
-        resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-        status = resp.json()["status"]
-        conclusion = resp.json().get("conclusion")
+    # 取第一个 check run（通常是 workflow）
+    cr = check_runs[0]
 
-        if status == "completed":
-            return {"status": status, "conclusion": conclusion}
-        time.sleep(10)
+    # 计算运行时长和提交时长
+    now = datetime.utcnow()
+    started_at = datetime.fromisoformat(cr["started_at"].replace("Z", "+00:00")) if cr.get("started_at") else None
+    completed_at = datetime.fromisoformat(cr["completed_at"].replace("Z", "+00:00")) if cr.get("completed_at") else None
 
-    return {"status": "timeout", "conclusion": None}
+    run_duration = None
+    if started_at:
+        if completed_at:
+            run_duration = int((completed_at - started_at).total_seconds())
+        else:
+            run_duration = int((now - started_at.replace(tzinfo=None)).total_seconds())
+
+    # 提交时长（从 started_at 到现在）
+    submitted_duration = int((now - started_at.replace(tzinfo=None)).total_seconds()) if started_at else None
+
+    return {
+        "status": cr["status"],  # completed / in_progress / queued
+        "conclusion": cr.get("conclusion"),  # success / failure / cancelled / null
+        "run_duration_seconds": run_duration,
+        "submitted_duration_seconds": submitted_duration,
+        "name": cr["name"]
+    }
