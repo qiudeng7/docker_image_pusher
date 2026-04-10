@@ -6,3 +6,5 @@ mongodb/mongodb-community-server:7.0.30-ubi8-20260219T080844Z
 oven/bun:1.3.11
 golang:alpine
 alpine:3.18
+
+downloads.unstructured.io/unstructured-io/unstructured:0.22.18
