@@ -8,3 +8,5 @@ golang:alpine
 alpine:3.18
 
 downloads.unstructured.io/unstructured-io/unstructured:0.22.18
+
+rustfs/rustfs:latest
